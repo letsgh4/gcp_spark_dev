@@ -54,8 +54,14 @@ resource "google_dataproc_cluster" "spark" {
       # lokalizacja artefaktów OpenTelemetry dla init action
       metadata = var.node_metadata
 
+      # Dataproc zawsze dopisuje trzy domyślne scope'y. Bez nich w konfiguracji
+      # każdy plan widzi różnicę i odtwarza klaster. Uprawnienia daje i tak
+      # cloud-platform + role IAM service accountu.
       service_account_scopes = [
         "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/cloud.useraccounts.readonly",
+        "https://www.googleapis.com/auth/devstorage.read_write",
+        "https://www.googleapis.com/auth/logging.write",
       ]
     }
 
