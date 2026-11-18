@@ -112,10 +112,15 @@ terraform output spark_ui_port_forward
 
 ### 5. Grafana
 
+Dostęp do Grafany chroni IAM Cloud Run (`roles/run.invoker`); sama Grafana nie pyta o hasło. Gotowe polecenie proxy jest w outpucie Terraform:
+
 ```bash
-# Polecenie z outputu Terraform — otwiera Grafanę na http://localhost:3000
 terraform output -raw grafana_proxy
+# gcloud run services proxy grafana-dev \
+#   --region=europe-central2 --project=<PROJECT_ID> --port=3000
 ```
+
+Uruchom wypisane polecenie, a potem otwórz http://localhost:3000. Owner i Editor projektu mają dostęp od razu, pozostałych dopisz w zmiennej `grafana_invokers`. Wejście wprost na adres `*.run.app` kończy się błędem 403, bo przeglądarka nie wysyła tokenu.
 
 Dashboard **Klaster Spark (Dataproc)** otwiera się jako strona startowa. Szczegóły w sekcji [Obserwowalność](#obserwowalność).
 
@@ -173,7 +178,7 @@ Całość jest w module `terraform/modules/observability`:
 - **Job `word_count.py`** wysyła do collectora spany (`word_count` → `count_words`, `save_output`) oraz metryki `wordcount.distinct_words` i `wordcount.duration`. Bez collectora albo bibliotek OpenTelemetry job działa normalnie, tylko bez telemetrii.
 - **Grafana** działa na Cloud Run i skaluje się do zera (pierwsze wejście po przerwie trwa kilkanaście sekund). Datasource i dashboardy są w repo (`files/grafana/`) i montowane z bucketu GCS — zmiany wyklikane w Grafanie znikają przy restarcie, więc trwałe zmiany rób w plikach.
 
-Dostęp do Grafany chroni IAM Cloud Run (`roles/run.invoker`); sama Grafana nie pyta o hasło. Owner i Editor projektu mają dostęp od razu, pozostałych dopisz w `grafana_invokers`.
+Jak otworzyć Grafanę i kto ma do niej dostęp: [5. Grafana](#5-grafana).
 
 Węzły nie mają wyjścia do internetu, więc paczkę collectora i biblioteki Pythona pobiera maszyna wykonująca `terraform apply` (skrypt `files/otel/upload_artifacts.sh`, wymaga `curl`, `python3` z `pip` i `gcloud`) i wgrywa je do bucketu data. Init action instaluje je stamtąd przy tworzeniu klastra. Błąd instalacji nie blokuje klastra — szukaj wtedy wpisów `[otel]` w logu init action w buckecie staging.
 
